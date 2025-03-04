@@ -1,0 +1,4 @@
+temp/
+.env
+vendor/
+php-error.log
