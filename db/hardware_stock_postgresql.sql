@@ -1,6 +1,6 @@
 /* user: postgres database: hardware_stock */
-CREATE DATABASE hardware_stock;
-\c hardware_stock
+-- CREATE DATABASE hardware_stock;
+-- \c hardware_stock
 
 CREATE TABLE users (
 	id UUID NOT NULL PRIMARY KEY,
