@@ -6,6 +6,10 @@ services:
     build: 
       context: ./db
       dockerfile: Dockerfile
+      args:
+        DB_USER: ${DB_USER}
+        DB_PASSWORD: ${DB_PASSWORD}
+        DB_NAME: ${DB_NAME}
 
   backend:
     container_name: backend
@@ -13,6 +17,10 @@ services:
     working_dir: /backend
     volumes:
       - ./backend:/backend
+    env_file:
+      - .env
+    environment:
+      - ALLOWED_ORIGIN=${WEB_SCHEME_DEV}://${WEB_DOMAIN_DEV}:${WEB_PORT_DEV}
     entrypoint: >
       sh -c "
         [ -d vendor ] && rm -rf vendor || echo 'backend vendor does not exist';
@@ -20,7 +28,7 @@ services:
         curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer &&
         composer --version &&
         composer install && 
-        php -S 0.0.0.0:1111
+        php -S 0.0.0.0:1122
       "
     networks:
       - hardware-stock-network
@@ -34,11 +42,12 @@ services:
       - ./frontend:/frontend
     depends_on:
       - backend
+    environment:
+      - WEB_BACK_URL=${WEB_SCHEME_DEV}://${WEB_DOMAIN_DEV}:${WEB_PORT_DEV}/api/ 
     entrypoint: >
       sh -c "
-        [ -d node_modules ] && rm -rf node_modules || echo 'frontend node_modules does not exist';
-        npm install -g @angular/cli  &&
-        npm install &&
+        chmod +x /frontend/configureFrontend.sh &&
+        /frontend/configureFrontend.sh && 
         ng serve --host 0.0.0.0 --disable-host-check
       "
     networks:
@@ -46,36 +55,19 @@ services:
 
   web:
     container_name: web
-    image: httpd:alpine3.21
-    working_dir: /web
+    image: nginx:alpine3.21-perl
     volumes:
-      - ./web/httpd.conf:/usr/local/apache2/conf/httpd.conf  
+    - ./web/entrypoint.sh:/web/entrypoint.sh 
+    - ./web/dev/nginx.conf:/web/nginx.conf
     networks:
       - hardware-stock-network
-    entrypoint: >
-      sh -c "
-        # Cria diretórios de logs e configura permissões
-        mkdir -p /usr/local/apache2/logs &&
-        chmod 755 /usr/local/apache2/logs &&
-        touch /usr/local/apache2/logs/error_log &&
-        chown -R www-data:www-data /usr/local/apache2/logs &&
-        
-        # Copia o arquivo de configuração
-        chmod 644 /web/httpd.conf && 
-        cp /web/httpd.conf /usr/local/apache2/conf/httpd.conf && 
-        
-        # Verifica e mostra a estrutura de diretórios
-        ls -la /usr/local/apache2/conf/ && 
-        
-        # Inicia o Apache
-        httpd-foreground
-      "
+    environment:
+      - WEB_DOMAIN=${WEB_DOMAIN_DEV}
+    entrypoint: > 
+      sh -c  "ls -la && chmod +x ./web/entrypoint.sh && /web/entrypoint.sh && ls -la"
     ports:
-      - "8080:80"
-
-
-
-
+      # - "${WEB_PORT_DEV}:443"
+      - "${WEB_PORT_DEV}:80"
 
 
 networks:
