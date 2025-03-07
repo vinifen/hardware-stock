@@ -6,9 +6,11 @@ services:
     build: 
       context: ./db
       dockerfile: Dockerfile
+
   backend:
     container_name: backend
     image: php:8.3.18RC1-fpm-alpine3.21
+    working_dir: /backend
     volumes:
       - ./backend:/backend
     entrypoint: >
@@ -20,9 +22,10 @@ services:
         composer install && 
         php -S 0.0.0.0:1111
       "
-
     networks:
       - hardware-stock-network
+      - db-network
+
   frontend:
     container_name: frontend
     image: node:current-alpine3.21
@@ -34,20 +37,49 @@ services:
     entrypoint: >
       sh -c "
         [ -d node_modules ] && rm -rf node_modules || echo 'frontend node_modules does not exist';
+        npm install -g @angular/cli  &&
         npm install &&
-        npm run serve
+        ng serve --host 0.0.0.0 --disable-host-check
       "
     networks:
       - hardware-stock-network
+
   web:
     container_name: web
     image: httpd:alpine3.21
+    working_dir: /web
+    volumes:
+      - ./web/httpd.conf:/usr/local/apache2/conf/httpd.conf  
     networks:
       - hardware-stock-network
+    entrypoint: >
+      sh -c "
+        # Cria diretórios de logs e configura permissões
+        mkdir -p /usr/local/apache2/logs &&
+        chmod 755 /usr/local/apache2/logs &&
+        touch /usr/local/apache2/logs/error_log &&
+        chown -R www-data:www-data /usr/local/apache2/logs &&
+        
+        # Copia o arquivo de configuração
+        chmod 644 /web/httpd.conf && 
+        cp /web/httpd.conf /usr/local/apache2/conf/httpd.conf && 
+        
+        # Verifica e mostra a estrutura de diretórios
+        ls -la /usr/local/apache2/conf/ && 
+        
+        # Inicia o Apache
+        httpd-foreground
+      "
     ports:
-      - "${WEB_PORT_DEV}:80"
-  networks:
-    hardware-stock-network:
-      driver: bridge
+      - "8080:80"
+
+
+
+
+
+
+networks:
+  hardware-stock-network:
+    driver: bridge
   db-network:
     driver: bridge
