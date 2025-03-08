@@ -21,6 +21,7 @@ services:
       - .env
     environment:
       - ALLOWED_ORIGIN=${WEB_SCHEME_DEV}://${WEB_DOMAIN_DEV}:${WEB_PORT_PROD}
+      - WEB_DOMAIN=${WEB_DOMAIN_PROD}
     networks:
       - hardware-stock-network
       - db-network
