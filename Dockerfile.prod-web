@@ -1,0 +1,51 @@
+FROM php:8.3.18RC1-fpm-alpine3.21 AS builder-backend
+
+WORKDIR /backend
+
+COPY ./backend .
+
+RUN [ -d vendor ] && rm -rf vendor || echo 'backend vendor does not exist';
+RUN apk add --no-cache bash curl git unzip
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN composer --version 
+RUN composer install
+
+
+
+
+FROM node:23-alpine3.20 AS builder-frontend
+
+WORKDIR /frontend
+
+ARG WEB_BACK_URL
+
+COPY ./frontend .
+
+RUN chmod +x /frontend/configureFrontend.sh
+RUN /frontend/configureFrontend.sh
+
+RUN ng build --configuration production
+
+RUN sh -c 'ls | grep -v "^dist$" | xargs rm -rf'
+
+
+
+
+FROM nginx:stable-alpine3.20-perl
+
+WORKDIR /web 
+
+COPY --from=builder-frontend /frontend/dist/hardware-stock /usr/share/nginx/html/hardware-stock
+COPY --from=builder-backend /backend /usr/share/nginx/html/backend  
+
+RUN chown -R nginx:nginx /usr/share/nginx/html
+RUN chmod -R 755 /usr/share/nginx/html
+
+COPY /web/entrypoint.sh /entrypoint.sh
+COPY /web/prod/nginx.conf .
+COPY /web/prod/mime.types /etc/nginx/mime.types
+
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
