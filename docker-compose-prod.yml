@@ -1,0 +1,39 @@
+services:
+  db:
+    container_name: db
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+      args:
+        DB_USER: ${DB_USER}
+        DB_PASSWORD: ${DB_PASSWORD}
+        DB_NAME: ${DB_NAME}
+    networks:
+      - db-network
+  web:
+    container_name: web
+    build: 
+      context: .
+      dockerfile: Dockerfile.prod-web
+      args:
+        WEB_BACK_URL: ${WEB_SCHEME_PROD}://${WEB_DOMAIN_PROD}:${WEB_PORT_PROD}/api/
+    env_file:
+      - .env
+    environment:
+      - ALLOWED_ORIGIN=${WEB_SCHEME_DEV}://${WEB_DOMAIN_DEV}:${WEB_PORT_PROD}
+    networks:
+      - hardware-stock-network
+      - db-network
+    ports:
+    # - "${WEB_PORT_PROD}:443"
+    - "${WEB_PORT_PROD}:80"
+
+networks:
+  hardware-stock-network:
+    driver: bridge
+  db-network:
+    driver: bridge
+
+
+    
+    
