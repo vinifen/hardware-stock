@@ -35,7 +35,7 @@ FROM nginx:stable-alpine3.20-perl
 
 WORKDIR /web 
 
-COPY --from=builder-frontend /frontend/dist/hardware-stock /usr/share/nginx/html/hardware-stock
+COPY --from=builder-frontend /frontend/dist/hardware-stock-frontend /usr/share/nginx/html/hardware-stock-frontend
 COPY --from=builder-backend /backend /usr/share/nginx/html/backend  
 
 RUN chown -R nginx:nginx /usr/share/nginx/html
