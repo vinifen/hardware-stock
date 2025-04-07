@@ -1,4 +1,6 @@
 # Hardware Stock
+# Hardware Stock
+## In development
 
 ``bash
 sudo docker compose -f docker-compose-dev.yml up -d
